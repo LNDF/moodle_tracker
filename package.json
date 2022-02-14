@@ -1,0 +1,19 @@
+{
+  "name": "moodle_doc_bot",
+  "version": "1.0.0",
+  "description": "Moodle Document upload bot",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node --experimental-modules src/index.js"
+  },
+  "author": "LNDF",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.25.0",
+    "discord.js": "^13.6.0",
+    "dotenv": "^16.0.0",
+    "puppeteer": "^13.3.1",
+    "puppeteer-extra": "^3.2.3",
+    "puppeteer-extra-plugin-stealth": "^2.9.0"
+  }
+}
