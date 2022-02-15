@@ -5,6 +5,7 @@ const fs = require("fs");
 const {resolve} = require("path");
 
 let lastToken = "";
+let lastSesskey = "";
 
 let moodleDomain = "";
 let moodleUser = "";
@@ -45,7 +46,7 @@ async function savePageState(page, error = null) {
 
 async function makePage(url) {
 	const cwd = "./browserData";
-	const puppeteerSettings = {headless: false,
+	const puppeteerSettings = {headless: true,
 							   userDataDir: cwd};
 	const browser = await puppeteer.launch(puppeteerSettings);
 	const userAgent = await browser.userAgent();
@@ -63,9 +64,49 @@ async function makePage(url) {
 }
 exports.makePage = makePage;
 
+async function callMoodleFunction(name, args) {
+	let url = moodleDomain + "/lib/ajax/service.php?sesskey=" + lastSesskey + "&info=" + name;
+	const pData = [
+        {
+            "index": 0,
+            "methodname": name,
+            "args": args
+        }
+    ];
+	const req = await axios.post(url, pData, {
+		headers: {
+			"Cookie": "MoodleSession=" + lastToken
+		}
+	});
+	if (req.data[0].error) {
+		if (req.data[0].exception.errorcode == "servicerequireslogin") {
+			console.log("Not logged in. Loggin in with google.");
+			await googleLogin(moodleDomain + "/login", moodleDomain + "/my");
+			url = moodleDomain + "/lib/ajax/service.php?sesskey=" + lastSesskey + "&info=" + name;
+			const req2 = await axios.post(url, pData, {
+				headers: {
+					"Cookie": "MoodleSession=" + lastToken
+				}
+			});
+			return req2.data[0];
+		}
+	}
+	/*
+	const cookies = req.headers['set-cookie'];
+	if (typeof cookies != "undefined" && cookies.length > 0) {
+		const cookie = cookies[0];
+		const token = cookie.substring(cookie.indexOf("=") + 1, cookie.indexOf(";"));
+		console.log("Token changed " + lastToken + " -> " + token);
+		lastToken = token;
+	}
+	*/
+	return req.data[0];
+}
+exports.callMoodleFunction = callMoodleFunction;
+
 async function getPage(url) {
 	//First, try to use existing token
-	const req = await axios.get(url, {
+	const req = await axios.get(moodleDomain + url, {
 		headers: {
 			"Cookie": "MoodleSession=" + lastToken
 		}
@@ -81,6 +122,7 @@ async function getPage(url) {
 		});
 		return req2.data;
 	} else {
+		/*
 		const cookies = req.headers['set-cookie'];
 		if (typeof cookies != "undefined" && cookies.length > 0) {
 			const cookie = cookies[0];
@@ -88,6 +130,7 @@ async function getPage(url) {
 			console.log("Token changed " + lastToken + " -> " + token);
 			lastToken = token;
 		}
+		*/
 		return req.data;
 	}
 	return lastToken;
@@ -100,6 +143,10 @@ async function googleLogin(startUrl, endUrl) {
 				{waitUntil: "load"});
 	if (pageHasUrl(page, endUrl)) {
 		let token = getCookieFromCookies(await page.cookies(startUrl), "MoodleSession");
+		let sesskey = await page.evaluate(() => M.cfg.sesskey);
+		console.log("Got sesskey " + sesskey);
+		lastSesskey = sesskey;
+		console.log("Moodle was logged in. Token changed from " + lastToken + " -> " + token);
 		lastToken = token;
 		await browser.close();
 		return;
@@ -108,6 +155,10 @@ async function googleLogin(startUrl, endUrl) {
 	await page.click(".btn.btn-secondary");
 	if (pageHasUrl(page, endUrl)) {
 		let token = getCookieFromCookies(await page.cookies(startUrl), "MoodleSession");
+		let sesskey = await page.evaluate(() => M.cfg.sesskey);
+		console.log("Got sesskey " + sesskey);
+		lastSesskey = sesskey;
+		console.log("Google was logged in. Token changed from " + lastToken + " -> " + token);
 		lastToken = token;
 		await browser.close();
 		return;
@@ -126,6 +177,9 @@ async function googleLogin(startUrl, endUrl) {
 		if (pageHasUrl(page, endUrl)) break;
 	}
 	let token = getCookieFromCookies(await page.cookies(startUrl), "MoodleSession");
+	let sesskey = await page.evaluate(() => M.cfg.sesskey);
+	console.log("Got sesskey " + sesskey);
+	lastSesskey = sesskey;
 	console.log("Google login success. Token changed from " + lastToken + " -> " + token);
 	lastToken = token;
 	browser.close();
