@@ -80,7 +80,7 @@ async function callMoodleFunction(name, args) {
 	});
 	if (req.data[0].error) {
 		if (req.data[0].exception.errorcode == "servicerequireslogin") {
-			console.log("Not logged in. Loggin in with google.");
+			console.log("Not logged in. Loggin in with Google...");
 			await googleLogin(moodleDomain + "/login", moodleDomain + "/my");
 			url = moodleDomain + "/lib/ajax/service.php?sesskey=" + lastSesskey + "&info=" + name;
 			const req2 = await axios.post(url, pData, {
@@ -135,53 +135,88 @@ async function getPage(url) {
 	}
 	return lastToken;
 }
+exports.getPage = getPage;
+
+//copied from stackoverflow, must be rewritten
+//syntax is '<domain>/mod/resource/view.php?id=<id>&redirect=1'
+async function downloadResource(fileUrl, outputLocationPath) {
+    const writer = fs.createWriteStream(outputLocationPath);
+    return axios.Axios({
+        method: 'get',
+        url: fileUrl,
+        responseType: 'stream',
+    }).then(response => {
+        return new Promise((resolve, reject) => {
+            response.data.pipe(writer);
+            let error = null;
+            writer.on('error', err => {
+                error = err;
+                writer.close();
+                reject(err);
+            });
+            writer.on('close', () => {
+                if (!error) {
+                    resolve(true);
+                }
+            });
+        });
+    });
+}
+exports.downloadResource = downloadResource;
 
 async function googleLogin(startUrl, endUrl) {
-    const page = await makePage(startUrl);
-	const browser = await page.browser();
-	await page.goto(endUrl,
-				{waitUntil: "load"});
-	if (pageHasUrl(page, endUrl)) {
+	try {
+		const page = await makePage(startUrl);
+		const browser = await page.browser();
+		await page.goto(endUrl,
+					{waitUntil: "load"});
+		if (pageHasUrl(page, endUrl)) {
+			let token = getCookieFromCookies(await page.cookies(startUrl), "MoodleSession");
+			let sesskey = await page.evaluate(() => M.cfg.sesskey);
+			console.log("Got sesskey " + sesskey);
+			console.log("Got MoodleSession " + token);
+			lastSesskey = sesskey;
+			console.log("Moodle was logged in.");
+			lastToken = token;
+			await browser.close();
+			return;
+		}
+		await page.waitForSelector(".btn.btn-secondary");
+		await page.click(".btn.btn-secondary");
+		if (pageHasUrl(page, endUrl)) {
+			let token = getCookieFromCookies(await page.cookies(startUrl), "MoodleSession");
+			let sesskey = await page.evaluate(() => M.cfg.sesskey);
+			console.log("Got sesskey " + sesskey);
+			console.log("Got MoodleSession " + token);
+			lastSesskey = sesskey;
+			console.log("Google was logged in.");
+			lastToken = token;
+			await browser.close();
+			return;
+		}
+		await page.waitForSelector('input[type="email"]');
+		await page.type('input[type="email"]', moodleUser);
+		await page.keyboard.press("Enter");
+		//await page.click("#identifierNext");
+		await page.waitForSelector('input[type="password"]', {visible: true});
+		await page.type('input[type="password"]', moodlePassword);
+		//await page.waitForSelector("#passwordNext", {visible: true});
+		//await page.click("#passwordNext");
+		await page.keyboard.press("Enter");
+		while (true) {
+			await page.waitForNavigation({waitUntil: "networkidle0"})
+			if (pageHasUrl(page, endUrl)) break;
+		}
 		let token = getCookieFromCookies(await page.cookies(startUrl), "MoodleSession");
 		let sesskey = await page.evaluate(() => M.cfg.sesskey);
 		console.log("Got sesskey " + sesskey);
+		console.log("Got MoodleSession " + token);
 		lastSesskey = sesskey;
-		console.log("Moodle was logged in. Token changed from " + lastToken + " -> " + token);
+		console.log("Google login success.");
 		lastToken = token;
-		await browser.close();
-		return;
+		browser.close();
+	} catch (error) {
+		savePageState();
+		throw error;
 	}
-	await page.waitForSelector(".btn.btn-secondary");
-	await page.click(".btn.btn-secondary");
-	if (pageHasUrl(page, endUrl)) {
-		let token = getCookieFromCookies(await page.cookies(startUrl), "MoodleSession");
-		let sesskey = await page.evaluate(() => M.cfg.sesskey);
-		console.log("Got sesskey " + sesskey);
-		lastSesskey = sesskey;
-		console.log("Google was logged in. Token changed from " + lastToken + " -> " + token);
-		lastToken = token;
-		await browser.close();
-		return;
-	}
-	await page.waitForSelector('input[type="email"]');
-	await page.type('input[type="email"]', moodleUser);
-	await page.keyboard.press("Enter");
-	//await page.click("#identifierNext");
-	await page.waitForSelector('input[type="password"]', {visible: true});
-	await page.type('input[type="password"]', moodlePassword);
-	//await page.waitForSelector("#passwordNext", {visible: true});
-	//await page.click("#passwordNext");
-	await page.keyboard.press("Enter");
-	while (true) {
-		await page.waitForNavigation({waitUntil: "networkidle0"})
-		if (pageHasUrl(page, endUrl)) break;
-	}
-	let token = getCookieFromCookies(await page.cookies(startUrl), "MoodleSession");
-	let sesskey = await page.evaluate(() => M.cfg.sesskey);
-	console.log("Got sesskey " + sesskey);
-	lastSesskey = sesskey;
-	console.log("Google login success. Token changed from " + lastToken + " -> " + token);
-	lastToken = token;
-	browser.close();
 }
-exports.getPage = getPage;

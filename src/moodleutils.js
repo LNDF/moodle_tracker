@@ -15,14 +15,13 @@ async function getFiles(courseid) {
     courseid = courseid.toString();
     const files = [];
     const req = await moodle.getPage("/course/view.php?id=" + courseid);
-    //document.querySelectorAll("innertab").length
-    //document.querySelectorAll(".activity.resource .aalink")
     const html = HTMLParser.parse(req);
     const as = html.querySelectorAll(".activity.resource .aalink");
     for (const a of as) {
+        const url = a.getAttribute("href");
         files.push({
             name: a.childNodes[1].childNodes[0].innerText,
-            url: a.getAttribute("href") + "&redirect=1"
+            id: parseInt(url.substring(url.indexOf("id=") + 3))
         })
     }
     if (courseid.indexOf("section=") == -1) {
