@@ -115,7 +115,7 @@ async function getPage(url) {
 	if (rUrl.indexOf(moodleDomain + "/login") != -1) {
 		console.log("Not logged in. Loggin in with google.");
 		await googleLogin(moodleDomain + "/login", moodleDomain + "/my");
-		const req2 = await axios.get(url, {
+		const req2 = await axios.get(moodleDomain + url, {
 			headers: {
 				"Cookie": "MoodleSession=" + lastToken
 			}
