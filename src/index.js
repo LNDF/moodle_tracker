@@ -26,7 +26,9 @@ async function main() {
     }
     console.log("Found " + trackedFiles.length + " resources");
     console.log("Moodle tracker started. Now watching for new resources...");
+    console.log(await moodle.downloadResource(958248, "."));
     while (true) {
+        await sleep(10000);
         for (const course of c) {
             const files = await moodleUtils.getFiles(course.id);
             for (const file of files) {
@@ -36,7 +38,6 @@ async function main() {
                 }
             }
         }
-        await sleep(10000);
     }
 }
 (async function (){

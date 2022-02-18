@@ -82,24 +82,9 @@ async function callMoodleFunction(name, args) {
 		if (req.data[0].exception.errorcode == "servicerequireslogin") {
 			console.log("Not logged in. Loggin in with Google...");
 			await googleLogin(moodleDomain + "/login", moodleDomain + "/my");
-			url = moodleDomain + "/lib/ajax/service.php?sesskey=" + lastSesskey + "&info=" + name;
-			const req2 = await axios.post(url, pData, {
-				headers: {
-					"Cookie": "MoodleSession=" + lastToken
-				}
-			});
-			return req2.data[0];
+			return await callMoodleFunction(name, args);
 		}
 	}
-	/*
-	const cookies = req.headers['set-cookie'];
-	if (typeof cookies != "undefined" && cookies.length > 0) {
-		const cookie = cookies[0];
-		const token = cookie.substring(cookie.indexOf("=") + 1, cookie.indexOf(";"));
-		console.log("Token changed " + lastToken + " -> " + token);
-		lastToken = token;
-	}
-	*/
 	return req.data[0];
 }
 exports.callMoodleFunction = callMoodleFunction;
@@ -115,52 +100,44 @@ async function getPage(url) {
 	if (rUrl.indexOf(moodleDomain + "/login") != -1) {
 		console.log("Not logged in. Loggin in with google.");
 		await googleLogin(moodleDomain + "/login", moodleDomain + "/my");
-		const req2 = await axios.get(moodleDomain + url, {
-			headers: {
-				"Cookie": "MoodleSession=" + lastToken
-			}
-		});
-		return req2.data;
+		return await getPage(url);
 	} else {
-		/*
-		const cookies = req.headers['set-cookie'];
-		if (typeof cookies != "undefined" && cookies.length > 0) {
-			const cookie = cookies[0];
-			const token = cookie.substring(cookie.indexOf("=") + 1, cookie.indexOf(";"));
-			console.log("Token changed " + lastToken + " -> " + token);
-			lastToken = token;
-		}
-		*/
 		return req.data;
 	}
-	return lastToken;
 }
 exports.getPage = getPage;
 
-//copied from stackoverflow, must be rewritten
-//syntax is '<domain>/mod/resource/view.php?id=<id>&redirect=1'
-async function downloadResource(fileUrl, outputLocationPath) {
-    const writer = fs.createWriteStream(outputLocationPath);
-    return axios.Axios({
-        method: 'get',
-        url: fileUrl,
-        responseType: 'stream',
-    }).then(response => {
-        return new Promise((resolve, reject) => {
-            response.data.pipe(writer);
-            let error = null;
-            writer.on('error', err => {
-                error = err;
-                writer.close();
-                reject(err);
-            });
-            writer.on('close', () => {
-                if (!error) {
-                    resolve(true);
-                }
-            });
-        });
-    });
+async function downloadResource(id, destFolder) {
+	const req = await axios.get(moodleDomain + "/mod/resource/view.php?id=" + id + "&redirect=1", {
+		responseType: 'stream',
+		headers: {
+			"Cookie": "MoodleSession=" + lastToken
+		}
+	});
+	const rUrl = req.request.res.responseUrl;
+	if (rUrl.indexOf(moodleDomain + "/login") != -1) {
+		writer.close();
+		console.log("Not logged in. Loggin in with google.");
+		await googleLogin(moodleDomain + "/login", moodleDomain + "/my");
+		return await downloadResource(id, path);
+	}
+	const parts = rUrl.split("/");
+	const path = destFolder + "/" + id + "_" + decodeURIComponent(parts[parts.length - 1].replace(/([^a-z0-9.]+)/gi, '_'));
+	const writer = fs.createWriteStream(path);
+	return new Promise((resolve, reject) => {
+		req.data.pipe(writer);
+		let error = null;
+		writer.on('error', err => {
+			error = err;
+			writer.close();
+			reject(err);
+		});
+		writer.on('close', () => {
+			if (!error) {
+				resolve(path);
+			}
+		});
+	});
 }
 exports.downloadResource = downloadResource;
 
@@ -216,7 +193,7 @@ async function googleLogin(startUrl, endUrl) {
 		lastToken = token;
 		browser.close();
 	} catch (error) {
-		savePageState();
+		savePageState(page, error);
 		throw error;
 	}
 }
