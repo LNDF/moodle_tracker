@@ -123,6 +123,7 @@ async function downloadResource(id, destFolder) {
 	}
 	const parts = rUrl.split("/");
 	const path = destFolder + "/" + id + "_" + decodeURIComponent(parts[parts.length - 1].replace(/([^a-z0-9.]+)/gi, '_'));
+	await fs.promises.mkdir(destFolder, {recursive: true});
 	const writer = fs.createWriteStream(path);
 	return new Promise((resolve, reject) => {
 		req.data.pipe(writer);
@@ -142,8 +143,9 @@ async function downloadResource(id, destFolder) {
 exports.downloadResource = downloadResource;
 
 async function googleLogin(startUrl, endUrl) {
+	let page = null;
 	try {
-		const page = await makePage(startUrl);
+		page = await makePage(startUrl);
 		const browser = await page.browser();
 		await page.goto(endUrl,
 					{waitUntil: "load"});

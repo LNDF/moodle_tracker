@@ -1,5 +1,6 @@
 const moodle = require("./moodle");
 const moodleUtils = require("./moodleutils");
+const drive = require("./drive")
 require("dotenv").config()
 
 const trackedFiles = [];
@@ -10,7 +11,6 @@ function sleep(ms) {
 
 async function main() {
     console.log("Starting moodle tracker...");
-    moodle.configMoodle(process.env.MOODLE_USER, process.env.MOODLE_PASSWORD, process.env.MOODLE_URL);
     const c = await moodleUtils.getCourses();
     if (trackedFiles.length > 0) {
         console.log("Tracked resource cache is present.");
@@ -26,7 +26,7 @@ async function main() {
     }
     console.log("Found " + trackedFiles.length + " resources");
     console.log("Moodle tracker started. Now watching for new resources...");
-    console.log(await moodle.downloadResource(958248, "."));
+    console.log(await drive.uploadAndShare(await moodle.downloadResource(958248, ".")));
     while (true) {
         await sleep(10000);
         for (const course of c) {
@@ -41,6 +41,9 @@ async function main() {
     }
 }
 (async function (){
+    moodle.configMoodle(process.env.MOODLE_USER, process.env.MOODLE_PASSWORD, process.env.MOODLE_URL);
+    drive.configDrive(process.env.DRIVE_CREDENTIALS_PATH, process.env.DRIVE_FOLDER_ID);
+    await drive.test();
     try {
         await main();
     } catch (error) {

@@ -78,3 +78,5 @@ typings/
 # browser data and errors
 browserData/
 errors/
+credentials.json
+drivetoken.json
