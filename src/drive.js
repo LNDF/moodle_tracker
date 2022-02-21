@@ -93,6 +93,9 @@ function uploadAndShare(file) {
             const fileMetadata = {
                 "name": name
             };
+            if (driveDir != "") {
+                fileMetadata.parents = [driveDir];
+            }
             const media = {
                 mimeType: mime.lookup(name) || "application/octet-stream",
                 body: stream
