@@ -1,6 +1,7 @@
 const moodle = require("./moodle");
 const moodleUtils = require("./moodleutils");
 const drive = require("./drive")
+const discord = require("./discord");
 require("dotenv").config()
 
 const trackedFiles = [];
@@ -43,7 +44,10 @@ async function main() {
 (async function (){
     moodle.configMoodle(process.env.MOODLE_USER, process.env.MOODLE_PASSWORD, process.env.MOODLE_URL);
     drive.configDrive(process.env.DRIVE_CREDENTIALS_PATH, process.env.DRIVE_FOLDER_ID);
+    discord.configDiscord(process.env.DISCORD_TOKEN, process.env.DISCORD_USER_ID);
     await drive.test();
+    await discord.connect();
+    await discord.sendMessage("Hello world!!!!");
     try {
         await main();
     } catch (error) {
