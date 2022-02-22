@@ -3,11 +3,11 @@ const discord = require("discord.js");
 let client = null;
 
 let discordToken = "";
-let userID = "";
+let channelID = "";
 
-function configDiscord(discordTokenP, userIDP) {
+function configDiscord(discordTokenP, channelIDP) {
     discordToken = discordTokenP;
-    userID = userIDP;
+    channelID = channelIDP;
 }
 exports.configDiscord = configDiscord;
 
@@ -15,7 +15,7 @@ function connect() {
     return new Promise((resolve, reject) => {
         client = new discord.Client({
             intents: [
-                discord.Intents.FLAGS.DIRECT_MESSAGES
+                discord.Intents.FLAGS.GUILDS
             ]
         });
         client.on("ready", () => {
@@ -28,7 +28,7 @@ function connect() {
 exports.connect = connect;
 
 async function sendMessage(message) {
-    const user = await client.users.fetch(userID);
-    await user.send(message)
+    const channel = client.channels.cache.get(channelID);
+    channel.send(message);
 }
 exports.sendMessage = sendMessage;
