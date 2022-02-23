@@ -1,4 +1,4 @@
-const discord = require("discord.js");
+const discord = require("discord.js-12");
 
 let client = null;
 
