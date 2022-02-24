@@ -22,6 +22,7 @@ async function processResource(course, resource) {
 }
 
 async function main() {
+    console.log("Now watching for new resources..,");
     while (true) {
         await sleep(10000);
         for (const course of courses) {
@@ -59,7 +60,7 @@ async function main() {
         }
     }
     console.log("Found " + trackedFiles.length + " resources");
-    console.log("Moodle tracker started. Now watching for new resources...");
+    console.log("Moodle tracker started.");
     while (true) {
         try {
             await main();
