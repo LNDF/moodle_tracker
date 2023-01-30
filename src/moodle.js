@@ -46,7 +46,7 @@ async function savePageState(page, error = null) {
 
 async function makePage(url) {
 	const cwd = "./browserData";
-	const puppeteerSettings = {headless: true,
+	const puppeteerSettings = {headless: process.env.USE_HEADLESS == "true" ? true : false,
 							   userDataDir: cwd};
 	const browser = await puppeteer.launch(puppeteerSettings);
 	const userAgent = await browser.userAgent();

@@ -8,6 +8,12 @@ async function getCourses() {
         "customfieldname": "",
         "customfieldvalue": ""
     });
+    for (let course of req.data.courses) {
+        if (course.id == process.env.FOCUS_COURSE) {
+            console.log("Focusing only on " + course.fullname);
+            return [course];
+        }
+    }
     return req.data.courses;
 }
 
