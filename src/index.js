@@ -24,7 +24,6 @@ async function processResource(course, resource) {
 async function main() {
     console.log("Now watching for new resources..,");
     while (true) {
-        await sleep(10000);
         for (const course of courses) {
             const files = await moodleUtils.getFiles(course.id);
             for (const file of files) {
