@@ -142,6 +142,24 @@ async function downloadResource(id, destFolder) {
 }
 exports.downloadResource = downloadResource;
 
+async function getRealUrl(id) {
+	const req = await axios.get(moodleDomain + "/mod/resource/view.php?id=" + id + "&redirect=1", {
+		responseType: 'stream',
+		headers: {
+			"Cookie": "MoodleSession=" + lastToken
+		}
+	});
+	const rUrl = req.request.res.responseUrl;
+	if (rUrl.indexOf(moodleDomain + "/login") != -1) {
+		writer.close();
+		console.log("Not logged in. Loggin in with google.");
+		await googleLogin(moodleDomain + "/login", moodleDomain + "/my");
+		return await getRealUrl(id);
+	}
+	return rUrl;
+}
+exports.getRealUrl = getRealUrl;
+
 async function googleLogin(startUrl, endUrl) {
 	let page = null;
 	try {

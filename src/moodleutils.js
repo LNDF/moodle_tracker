@@ -17,27 +17,35 @@ async function getCourses() {
     return req.data.courses;
 }
 
-async function getFiles(courseid) {
-    courseid = courseid.toString();
-    const files = [];
-    const req = await moodle.getPage("/course/view.php?id=" + courseid);
+function getEntriesFromTYpe(req, type) {
+    const entries = [];
     const html = HTMLParser.parse(req);
-    const as = html.querySelectorAll(".activity.resource .aalink");
+    const as = html.querySelectorAll(".activity."+ type + " .aalink");
     for (const a of as) {
         const url = a.getAttribute("href");
-        files.push({
+        entries.push({
             name: a.childNodes[1].childNodes[0].innerText,
             id: parseInt(url.substring(url.indexOf("id=") + 3))
         })
     }
+}
+
+async function getFiles(courseid) {
+    courseid = courseid.toString();
+    const entries = {};
+    const req = await moodle.getPage("/course/view.php?id=" + courseid);
+    entries.files = getEntriesFromTYpe(req, "resource");
+    entries.urls = getEntriesFromTYpe(req, "url");
     if (courseid.indexOf("section=") == -1) {
         const pages = html.querySelectorAll("innertab").length;
         for (let i = 1; i < pages; i++) {
-            files.push.apply(files, (await getFiles(courseid + "&section=" + i)));
+            const sectionEntries = await getEntries(courseid + "&section=" + i);
+            entries.files = entries.files.concat(sectionEntries.files);
+            entries.urls = entries.urls.concat(sectionEntries.urls);
         }
     }
     return files;
 }
 
 exports.getCourses = getCourses;
-exports.getFiles = getFiles;
+exports.getEntries = getEntries;
