@@ -122,7 +122,7 @@ async function downloadResource(id, destFolder) {
 		return await downloadResource(id, path);
 	}
 	const parts = rUrl.split("/");
-	const path = destFolder + "/" + id + "_" + decodeURIComponent(parts[parts.length - 1].replace(/([^a-z0-9.]+)/gi, '_'));
+	const path = destFolder + "/" + id + "_" + decodeURIComponent(parts[parts.length - 1].split("?")[0].replace(/([^a-z0-9.]+)/gi, '_'));
 	await fs.promises.mkdir(destFolder, {recursive: true});
 	const writer = fs.createWriteStream(path);
 	return new Promise((resolve, reject) => {
@@ -143,7 +143,7 @@ async function downloadResource(id, destFolder) {
 exports.downloadResource = downloadResource;
 
 async function getRealUrl(id) {
-	const req = await axios.get(moodleDomain + "/mod/resource/view.php?id=" + id + "&redirect=1", {
+	const req = await axios.get(moodleDomain + "/mod/url/view.php?id=" + id + "&redirect=1", {
 		responseType: 'stream',
 		headers: {
 			"Cookie": "MoodleSession=" + lastToken

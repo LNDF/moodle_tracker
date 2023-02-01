@@ -14,7 +14,7 @@ function sleep(ms) {
 }
 
 async function processResource(course, resource, resourceName) {
-    console.log("Found new resource on " + course + " with name " + resourceName + " and id " + resource);
+    console.log("Found new file on " + course + " with name " + resourceName + " and id " + resource);
     const f = await moodle.downloadResource(resource, "./work");
     const d = await drive.uploadAndShare(f);
     fs.unlinkSync(f);
@@ -23,8 +23,8 @@ async function processResource(course, resource, resourceName) {
 }
 
 async function processUrl(course, url, urlName) {
-    console.log("Found new resource on " + course + " with name " + resourceName + " and id " + resource);
-    const realUrl = moodle.getRealUrl(url);
+    console.log("Found new URL on " + course + " with name " + urlName + " and id " + url);
+    const realUrl = await moodle.getRealUrl(url);
     console.log("Real URL is " + realUrl);
     discord.sendMessage("Found new URL on " + course + ": " + urlName + ". The URL is " + realUrl);
 }
@@ -68,7 +68,6 @@ async function main() {
         console.log("Found " + courses.length + " courses. Getting data...");
         for (const course of courses) {
             console.log("Getting resources for " + course.fullname + "...");
-            const files = await moodleUtils.getFiles(course.id);
             const entries = await moodleUtils.getEntries(course.id);
             for (const file of entries.files) {
                 trackedFiles.push(file.id);

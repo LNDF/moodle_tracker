@@ -17,10 +17,9 @@ async function getCourses() {
     return req.data.courses;
 }
 
-function getEntriesFromTYpe(req, type) {
+function getEntriesFromTYpe(html, type) {
     const entries = [];
-    const html = HTMLParser.parse(req);
-    const as = html.querySelectorAll(".activity."+ type + " .aalink");
+    const as = html.querySelectorAll(".activity." + type + " .aalink");
     for (const a of as) {
         const url = a.getAttribute("href");
         entries.push({
@@ -28,14 +27,16 @@ function getEntriesFromTYpe(req, type) {
             id: parseInt(url.substring(url.indexOf("id=") + 3))
         })
     }
+    return entries;
 }
 
-async function getFiles(courseid) {
+async function getEntries(courseid) {
     courseid = courseid.toString();
     const entries = {};
     const req = await moodle.getPage("/course/view.php?id=" + courseid);
-    entries.files = getEntriesFromTYpe(req, "resource");
-    entries.urls = getEntriesFromTYpe(req, "url");
+    const html = HTMLParser.parse(req);
+    entries.files = getEntriesFromTYpe(html, "resource");
+    entries.urls = getEntriesFromTYpe(html, "url");
     if (courseid.indexOf("section=") == -1) {
         const pages = html.querySelectorAll("innertab").length;
         for (let i = 1; i < pages; i++) {
@@ -44,7 +45,7 @@ async function getFiles(courseid) {
             entries.urls = entries.urls.concat(sectionEntries.urls);
         }
     }
-    return files;
+    return entries;
 }
 
 exports.getCourses = getCourses;
